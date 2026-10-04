@@ -36,7 +36,7 @@ MAX_ZONE_QUERIES = 14
 MAX_EXACT_DETOUR_REQUESTS = 6
 
 # Restaurant calls are also limited to actual candidate stations.
-MAX_RESTAURANT_REQUESTS = 12
+MAX_RESTAURANT_REQUESTS = 2
 
 # Small pause between public API requests.
 API_DELAY_SECONDS = 0.25
@@ -931,10 +931,20 @@ def enrich_live_status(stations, maximum=None):
 # =========================================================
 
 def get_nearby_restaurants(latitude, longitude, radius=2000):
+    """
+    Best-effort restaurant lookup.
+
+    Restaurant data is optional for ChargePilot. If Overpass is slow,
+    unreachable, rate-limited, or returns invalid data, this function
+    returns an empty list so the main EV journey planner can continue.
+    """
+    if latitude is None or longitude is None:
+        return []
+
     radius = max(100, safe_float(radius, 2000))
 
     query = f"""
-    [out:json][timeout:10];
+    [out:json][timeout:6];
     (
       node[amenity=restaurant](around:{radius},{latitude},{longitude});
       way[amenity=restaurant](around:{radius},{latitude},{longitude});
@@ -954,7 +964,7 @@ def get_nearby_restaurants(latitude, longitude, radius=2000):
                 endpoint,
                 data=query,
                 headers=HEADERS,
-                timeout=12,
+                timeout=5,
             )
 
             if response.status_code != 200:
@@ -964,10 +974,20 @@ def get_nearby_restaurants(latitude, longitude, radius=2000):
                 continue
 
             data = response.json()
+            if not isinstance(data, dict):
+                print(f"Overpass returned invalid JSON at {endpoint}")
+                continue
+
             elements = data.get("elements", [])
+            if not isinstance(elements, list):
+                return []
+
             restaurants = []
 
             for item in elements[:20]:
+                if not isinstance(item, dict):
+                    continue
+
                 tags = item.get("tags", {}) or {}
                 item_lat = item.get("lat")
                 item_lon = item.get("lon")
@@ -991,24 +1011,54 @@ def get_nearby_restaurants(latitude, longitude, radius=2000):
             return restaurants[:20]
 
         except requests.RequestException as error:
-            print("Overpass network error:", error)
+            print(
+                f"Overpass network error at {endpoint}: {error}"
+            )
+        except (ValueError, TypeError) as error:
+            print(
+                f"Overpass response processing error at {endpoint}: {error}"
+            )
         except Exception as error:
-            print("Restaurant processing error:", error)
+            print(
+                f"Restaurant lookup error at {endpoint}: {error}"
+            )
 
-        time.sleep(0.5)
+        # Do not add a long delay between failed endpoints.
+        # The second endpoint is already a fallback.
 
+    print("Restaurant lookup unavailable; continuing without food data.")
     return []
 
 
 def attach_restaurants_to_stations(stations, radius=2000, maximum=None):
+    """
+    Attach nearby restaurants on a best-effort basis.
+
+    Food is an optional enhancement, so failure of Overpass must never
+    fail the complete journey-planning request. Only a small number of
+    top charging candidates are queried to keep Render response time low.
+    """
     if not stations:
         return stations
 
+    # Always initialize the field so the frontend can safely render it.
+    for station in stations:
+        station["restaurants"] = []
+        station["restaurant_count"] = 0
+
     candidates = stations
     if maximum is not None:
-        candidates = stations[: int(maximum)]
+        try:
+            candidates = stations[:max(0, int(maximum))]
+        except (TypeError, ValueError):
+            candidates = stations
 
+    # Hard safety cap. Restaurant lookup is optional and should never
+    # consume the entire Gunicorn request timeout.
     candidates = candidates[:MAX_RESTAURANT_REQUESTS]
+
+    if not candidates:
+        return stations
 
     print()
     print(
@@ -1021,12 +1071,23 @@ def attach_restaurants_to_stations(stations, radius=2000, maximum=None):
             f"{station.get('name')}"
         )
 
-        station["restaurants"] = get_nearby_restaurants(
-            station.get("latitude"),
-            station.get("longitude"),
-            radius,
+        try:
+            station["restaurants"] = get_nearby_restaurants(
+                station.get("latitude"),
+                station.get("longitude"),
+                radius,
+            ) or []
+        except Exception as error:
+            # Defensive fallback: restaurant lookup must never break /plan.
+            print(
+                f"Restaurant lookup skipped for "
+                f"{station.get('name', 'Unknown')}: {error}"
+            )
+            station["restaurants"] = []
+
+        station["restaurant_count"] = len(
+            station["restaurants"]
         )
-        station["restaurant_count"] = len(station["restaurants"])
 
         if index < len(candidates):
             time.sleep(API_DELAY_SECONDS)
