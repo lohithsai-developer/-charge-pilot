@@ -1,0 +1,9 @@
+Flask
+python-dotenv
+requests
+google-genai
+folium
+reportlab
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib

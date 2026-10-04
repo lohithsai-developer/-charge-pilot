@@ -1,0 +1,2834 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#ffffff">
+    <title>ChargePilot – EV Journey Planner</title>
+    <!-- ChargePilot frontend: multi-stop journey planning UI -->
+    <meta name="description"
+        content="Plan electric vehicle trips with charging stops, range checks, cost estimates and a downloadable itinerary.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ink: #0f172a;
+            --text: #334155;
+            --muted: #64748b;
+            --line: #e2e8f0;
+            --bg: #fff;
+            --soft: #f8fafc;
+            --brand: #0b6b4f;
+            --brand-d: #085540;
+            --brand-l: #e8f5ef;
+            --warn: #b45309;
+            --warn-l: #fef3c7;
+            --bad: #b91c1c;
+            --bad-l: #fef2f2;
+            --r: 10px
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        html {
+            scroll-behavior: smooth;
+            scroll-padding-top: 76px
+        }
+
+        body {
+            font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+            color: var(--text);
+            background: var(--bg);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased
+        }
+
+        button,
+        input,
+        select {
+            font: inherit;
+            color: inherit
+        }
+
+        button {
+            cursor: pointer
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none
+        }
+
+        :focus-visible {
+            outline: 2px solid var(--brand);
+            outline-offset: 2px
+        }
+
+        .wrap {
+            width: min(1120px, calc(100% - 40px));
+            margin: 0 auto
+        }
+
+        h1,
+        h2,
+        h3 {
+            color: var(--ink);
+            letter-spacing: -.02em;
+            line-height: 1.2
+        }
+
+        /* Nav */
+        .nav {
+            position: sticky;
+            top: 0;
+            z-index: 900;
+            background: rgba(255, 255, 255, .95);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid var(--line)
+        }
+
+        .nav .wrap {
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            font-size: 18px;
+            color: var(--ink)
+        }
+
+        .logo {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: var(--brand);
+            color: #fff;
+            display: grid;
+            place-items: center
+        }
+
+        .logo svg {
+            width: 17px;
+            height: 17px
+        }
+
+        .links {
+            display: flex;
+            align-items: center;
+            gap: 28px;
+            font-size: 14px;
+            font-weight: 500
+        }
+
+        .links a:hover {
+            color: var(--ink)
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            height: 44px;
+            padding: 0 20px;
+            border-radius: var(--r);
+            border: 1px solid var(--line);
+            background: #fff;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--ink);
+            transition: background .15s, border-color .15s
+        }
+
+        .btn:hover:not(:disabled) {
+            border-color: #cbd5e1;
+            background: var(--soft)
+        }
+
+        .btn:disabled {
+            opacity: .5;
+            cursor: not-allowed
+        }
+
+        .btn.primary {
+            background: var(--brand);
+            border-color: var(--brand);
+            color: #fff
+        }
+
+        .btn.primary:hover:not(:disabled) {
+            background: var(--brand-d);
+            border-color: var(--brand-d)
+        }
+
+        .btn.lg {
+            height: 50px;
+            padding: 0 26px;
+            font-size: 15px
+        }
+
+        /* Hero */
+        .hero {
+            padding: 84px 0 64px;
+            background: linear-gradient(180deg, var(--soft), #fff)
+        }
+
+        .hero .wrap {
+            display: grid;
+            grid-template-columns: 1.15fr .85fr;
+            gap: 56px;
+            align-items: center
+        }
+
+        .hero h1 {
+            font-size: clamp(34px, 4.6vw, 54px);
+            font-weight: 800;
+            letter-spacing: -.035em
+        }
+
+        .hero p.lead {
+            font-size: 18px;
+            color: var(--text);
+            margin-top: 18px;
+            max-width: 540px
+        }
+
+        .cta {
+            display: flex;
+            gap: 12px;
+            margin-top: 28px;
+            flex-wrap: wrap
+        }
+
+        .hero-card {
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 22px;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, .06)
+        }
+
+        .hero-card h3 {
+            font-size: 14px;
+            color: var(--muted);
+            font-weight: 600;
+            margin-bottom: 14px
+        }
+
+        .hc-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-top: 1px solid var(--line);
+            font-size: 14px
+        }
+
+        .hc-row:first-of-type {
+            border-top: 0
+        }
+
+        .hc-row b {
+            color: var(--ink);
+            font-weight: 600
+        }
+
+        .tag {
+            font-size: 12px;
+            font-weight: 600;
+            padding: 3px 9px;
+            border-radius: 99px;
+            background: var(--brand-l);
+            color: var(--brand)
+        }
+
+        /* Sections */
+        section.block {
+            padding: 72px 0
+        }
+
+        .head {
+            max-width: 620px;
+            margin-bottom: 36px
+        }
+
+        .head h2 {
+            font-size: 30px;
+            font-weight: 700
+        }
+
+        .head p {
+            margin-top: 10px;
+            color: var(--muted);
+            font-size: 16px
+        }
+
+        .steps3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px
+        }
+
+        .info {
+            padding: 24px;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: #fff
+        }
+
+        .info .n {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--brand-l);
+            color: var(--brand);
+            font-weight: 700;
+            font-size: 14px;
+            display: grid;
+            place-items: center;
+            margin-bottom: 14px
+        }
+
+        .info h3 {
+            font-size: 16px;
+            margin-bottom: 6px
+        }
+
+        .info p {
+            font-size: 14.5px;
+            color: var(--muted)
+        }
+
+        .alt {
+            background: var(--soft);
+            border-block: 1px solid var(--line)
+        }
+
+        /* Planner */
+        .planner {
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 4px 20px rgba(15, 23, 42, .04)
+        }
+
+        .group {
+            padding: 24px 0;
+            border-top: 1px solid var(--line)
+        }
+
+        .group:first-child {
+            border-top: 0;
+            padding-top: 0
+        }
+
+        .group h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px
+        }
+
+        .group .hint {
+            font-size: 13.5px;
+            color: var(--muted);
+            margin-bottom: 16px
+        }
+
+        .grid {
+            display: grid;
+            gap: 16px
+        }
+
+        .g2 {
+            grid-template-columns: repeat(2, 1fr)
+        }
+
+        .g3 {
+            grid-template-columns: repeat(3, 1fr)
+        }
+
+        .g4 {
+            grid-template-columns: repeat(4, 1fr)
+        }
+
+        .route {
+            display: grid;
+            grid-template-columns: 1fr 46px 1fr;
+            gap: 12px;
+            align-items: end
+        }
+
+        .field label,
+        .field .lbl {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--ink);
+            margin-bottom: 6px
+        }
+
+        .ctl {
+            width: 100%;
+            height: 44px;
+            padding: 0 14px;
+            background: #fff;
+            border: 1px solid #cbd5e1;
+            border-radius: var(--r);
+            outline: none;
+            transition: border-color .15s, box-shadow .15s;
+            appearance: none;
+            -webkit-appearance: none
+        }
+
+        select.ctl {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpath d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            padding-right: 36px
+        }
+
+        .ctl:focus {
+            border-color: var(--brand);
+            box-shadow: 0 0 0 3px rgba(11, 107, 79, .14)
+        }
+
+        .ctl::placeholder {
+            color: #94a3b8
+        }
+
+        .ctl.invalid {
+            border-color: var(--bad)
+        }
+
+        .unit {
+            position: relative
+        }
+
+        .unit .ctl {
+            padding-right: 44px
+        }
+
+        .unit span {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 13px;
+            color: var(--muted);
+            pointer-events: none
+        }
+
+        .swap {
+            height: 44px;
+            width: 46px;
+            border: 1px solid #cbd5e1;
+            border-radius: var(--r);
+            background: #fff;
+            color: var(--brand);
+            display: grid;
+            place-items: center
+        }
+
+        .swap:hover {
+            background: var(--brand-l)
+        }
+
+        .swap svg {
+            width: 18px;
+            height: 18px
+        }
+
+        .seg {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            padding: 3px;
+            background: var(--soft);
+            border: 1px solid var(--line);
+            border-radius: var(--r);
+            height: 44px
+        }
+
+        .seg div {
+            position: relative;
+            display: grid
+        }
+
+        .seg input {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none
+        }
+
+        .seg label {
+            margin: 0;
+            display: grid;
+            place-items: center;
+            border-radius: 7px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--muted);
+            cursor: pointer
+        }
+
+        .seg input:checked+label {
+            background: #fff;
+            color: var(--brand);
+            font-weight: 600;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, .12)
+        }
+
+        .seg input:focus-visible+label {
+            outline: 2px solid var(--brand)
+        }
+
+        .toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            height: 44px;
+            padding: 0 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: var(--r);
+            font-size: 14px
+        }
+
+        .sw {
+            position: relative;
+            width: 40px;
+            height: 22px;
+            flex: none
+        }
+
+        .sw input {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+            z-index: 1
+        }
+
+        .sw i {
+            position: absolute;
+            inset: 0;
+            background: #cbd5e1;
+            border-radius: 99px;
+            transition: .15s
+        }
+
+        .sw i::after {
+            content: "";
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #fff;
+            transition: .15s;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, .2)
+        }
+
+        .sw input:checked+i {
+            background: var(--brand)
+        }
+
+        .sw input:checked+i::after {
+            transform: translateX(18px)
+        }
+
+        .sw input:focus-visible+i {
+            outline: 2px solid var(--brand);
+            outline-offset: 2px
+        }
+
+        details.adv {
+            border-top: 1px solid var(--line);
+            padding-top: 20px
+        }
+
+        details.adv summary {
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--ink);
+            cursor: pointer;
+            margin-bottom: 16px
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px
+        }
+
+        .actions .primary {
+            flex: 1
+        }
+
+        .loading {
+            display: none;
+            margin-top: 20px;
+            padding: 16px 18px;
+            border: 1px solid var(--line);
+            border-radius: var(--r);
+            background: var(--soft);
+            align-items: center;
+            gap: 14px
+        }
+
+        .loading.on {
+            display: flex
+        }
+
+        .ev-loader {
+            position: relative;
+            width: 78px;
+            height: 38px;
+            flex: none;
+            overflow: hidden;
+            border-radius: 10px;
+            background: linear-gradient(180deg, #f0fbf7, #fff);
+            border: 1px solid #d8eee7;
+        }
+
+        .ev-road {
+            position: absolute;
+            left: 5px;
+            right: 5px;
+            bottom: 7px;
+            height: 3px;
+            border-radius: 99px;
+            background: repeating-linear-gradient(90deg, #94a3b8 0 9px, transparent 9px 16px);
+        }
+
+        .ev-car {
+            position: absolute;
+            left: -22px;
+            bottom: 8px;
+            width: 24px;
+            height: 14px;
+            border-radius: 7px 8px 3px 3px;
+            background: var(--brand);
+            color: #fff;
+            font-size: 10px;
+            display: grid;
+            place-items: center;
+            box-shadow: 8px 3px 0 -2px var(--brand-d);
+            animation: evDrive 2.2s ease-in-out infinite;
+        }
+
+        .ev-car::before,
+        .ev-car::after {
+            content: "";
+            position: absolute;
+            bottom: -4px;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #0f172a;
+        }
+
+        .ev-car::before {
+            left: 3px;
+        }
+
+        .ev-car::after {
+            right: 3px;
+        }
+
+        @keyframes evDrive {
+            0% {
+                transform: translateX(0);
+            }
+
+            45% {
+                transform: translateX(48px);
+            }
+
+            70% {
+                transform: translateX(48px);
+            }
+
+            100% {
+                transform: translateX(105px);
+            }
+        }
+
+        .loading b {
+            display: block;
+            font-size: 14px;
+            color: var(--ink)
+        }
+
+        .loading span {
+            font-size: 13px;
+            color: var(--muted)
+        }
+
+        .error {
+            display: none;
+            margin-top: 16px;
+            padding: 12px 16px;
+            border: 1px solid #fecaca;
+            background: var(--bad-l);
+            color: var(--bad);
+            border-radius: var(--r);
+            font-size: 14px
+        }
+
+        .error.on {
+            display: block
+        }
+
+        /* Results */
+        #results {
+            display: none
+        }
+
+        #results.on {
+            display: block
+        }
+
+        .rhead {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 22px
+        }
+
+        .rhead h2 {
+            font-size: 30px;
+            font-weight: 700
+        }
+
+        .rhead p {
+            color: var(--muted);
+            font-weight: 500
+        }
+
+        .card {
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: 14px
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            margin-bottom: 16px
+        }
+
+        .stat {
+            padding: 20px
+        }
+
+        .stat .v {
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--ink);
+            letter-spacing: -.02em;
+            line-height: 1.2
+        }
+
+        .stat .l {
+            font-size: 13px;
+            color: var(--muted);
+            margin-top: 4px
+        }
+
+        .two {
+            display: grid;
+            grid-template-columns: 1.4fr .8fr;
+            gap: 16px;
+            margin-bottom: 16px
+        }
+
+        .ph {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--line)
+        }
+
+        .ph h3 {
+            font-size: 15px
+        }
+
+        .ph span {
+            font-size: 12.5px;
+            color: var(--muted)
+        }
+
+        .pb {
+            padding: 20px
+        }
+
+        .rec {
+            font-size: 16px;
+            line-height: 1.75;
+            color: var(--ink);
+            white-space: pre-line
+        }
+
+        .sum {
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid var(--line);
+            color: var(--text);
+            font-size: 14.5px;
+            line-height: 1.75;
+            white-space: pre-line
+        }
+
+        .sum:empty {
+            display: none
+        }
+
+        .bat {
+            display: flex;
+            align-items: center;
+            gap: 16px
+        }
+
+        .bat-ico {
+            width: 72px;
+            height: 34px;
+            border: 2px solid var(--brand);
+            border-radius: 7px;
+            padding: 3px;
+            position: relative;
+            flex: none
+        }
+
+        .bat-ico::after {
+            content: "";
+            position: absolute;
+            right: -7px;
+            top: 8px;
+            width: 4px;
+            height: 12px;
+            background: var(--brand);
+            border-radius: 0 3px 3px 0
+        }
+
+        .bat-fill {
+            height: 100%;
+            width: 0;
+            background: var(--brand);
+            border-radius: 3px;
+            transition: width .5s
+        }
+
+        .bat-fill.low {
+            background: var(--warn)
+        }
+
+        .bat-fill.crit {
+            background: var(--bad)
+        }
+
+        .bat b {
+            font-size: 24px;
+            color: var(--ink);
+            display: block;
+            line-height: 1.1
+        }
+
+        .bat small {
+            color: var(--muted);
+            font-size: 13px
+        }
+
+        .bat-text {
+            margin-top: 16px;
+            font-size: 14px;
+            color: var(--text);
+            line-height: 1.7;
+            white-space: pre-line
+        }
+
+        .empty {
+            padding: 28px;
+            text-align: center;
+            color: var(--muted);
+            grid-column: 1/-1
+        }
+
+        .share {
+            margin-top: 16px;
+            padding: 22px
+        }
+
+        .share h3 {
+            font-size: 16px;
+            margin-bottom: 14px
+        }
+
+        .share-row {
+            display: grid;
+            grid-template-columns: auto auto 1fr;
+            gap: 12px
+        }
+
+        .mail {
+            display: flex;
+            gap: 8px
+        }
+
+        .msg {
+            min-height: 20px;
+            margin-top: 12px;
+            font-size: 13.5px;
+            color: var(--muted)
+        }
+
+        .msg.ok {
+            color: var(--brand)
+        }
+
+        .msg.err {
+            color: var(--bad)
+        }
+
+        .note {
+            margin-top: 16px;
+            font-size: 13px;
+            color: var(--muted);
+            max-width: 880px
+        }
+
+        .plan-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            margin-top: 10px;
+            padding: 5px 11px;
+            border-radius: 999px;
+            background: var(--brand-l);
+            color: var(--brand);
+            font-size: 12px;
+            font-weight: 700
+        }
+
+        .plan-status.warn {
+            background: var(--warn-l);
+            color: var(--warn)
+        }
+
+        .journey-card {
+            margin-bottom: 16px;
+            overflow: hidden
+        }
+
+        .journey-timeline {
+            padding: 20px
+        }
+
+        .journey-step {
+            position: relative;
+            display: grid;
+            grid-template-columns: 42px 1fr;
+            gap: 14px;
+            padding-bottom: 24px
+        }
+
+        .journey-step:last-child {
+            padding-bottom: 0
+        }
+
+        .journey-step:not(:last-child)::before {
+            content: "";
+            position: absolute;
+            left: 20px;
+            top: 38px;
+            bottom: 0;
+            width: 2px;
+            background: var(--line)
+        }
+
+        .journey-dot {
+            position: relative;
+            z-index: 1;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            background: var(--soft);
+            border: 2px solid var(--line);
+            color: var(--ink);
+            font-size: 13px;
+            font-weight: 800
+        }
+
+        .journey-step.charge .journey-dot {
+            background: var(--brand-l);
+            border-color: var(--brand);
+            color: var(--brand)
+        }
+
+        .journey-step.arrive .journey-dot {
+            background: var(--brand);
+            border-color: var(--brand);
+            color: #fff
+        }
+
+        .journey-content {
+            min-width: 0;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 15px 16px;
+            background: #fff
+        }
+
+        .journey-content h4 {
+            color: var(--ink);
+            font-size: 15px;
+            margin-bottom: 3px
+        }
+
+        .journey-route {
+            color: var(--muted);
+            font-size: 13px;
+            margin-bottom: 11px
+        }
+
+        .journey-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px
+        }
+
+        .journey-chip {
+            padding: 4px 9px;
+            border-radius: 999px;
+            background: var(--soft);
+            border: 1px solid var(--line);
+            color: var(--text);
+            font-size: 12px
+        }
+
+        .journey-charge {
+            margin-top: 11px;
+            padding-top: 11px;
+            border-top: 1px solid var(--line);
+            font-size: 13px;
+            color: var(--text)
+        }
+
+
+        /* =========================================================
+           MULTI-STOP JOURNEY VISUAL
+           ========================================================= */
+        .journey-plan-card {
+            overflow: hidden;
+        }
+
+        .journey-plan-card .ph {
+            border-bottom: 1px solid var(--line);
+        }
+
+        .journey-timeline {
+            padding: 0;
+            background: #fff;
+        }
+
+        .journey-route-visual {
+            position: relative;
+            padding: 24px 24px 12px;
+            overflow-x: auto;
+            background: linear-gradient(180deg, #f7fbff 0%, #fff 100%);
+        }
+
+        .journey-route-line {
+            position: absolute;
+            left: 70px;
+            right: 70px;
+            top: 61px;
+            height: 4px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, var(--brand), #8fd7c5, var(--brand));
+            opacity: .8;
+        }
+
+        .journey-top-points {
+            position: relative;
+            z-index: 2;
+            min-width: max-content;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 38px;
+        }
+
+        .route-point {
+            min-width: 90px;
+            text-align: center;
+            position: relative;
+        }
+
+        .route-point span {
+            display: inline-block;
+            padding: 5px 13px;
+            border-radius: 8px;
+            background: #2563eb;
+            color: #fff;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .route-point.start span {
+            background: var(--brand);
+        }
+
+        .route-point.destination span {
+            background: #f15b4f;
+        }
+
+        .route-point i {
+            display: grid;
+            place-items: center;
+            width: 28px;
+            height: 28px;
+            margin: 6px auto 4px;
+            border-radius: 50%;
+            background: #fff;
+            border: 4px solid #2563eb;
+            color: #2563eb;
+            font-style: normal;
+            font-size: 10px;
+            box-shadow: 0 2px 7px rgba(15, 23, 42, .12);
+        }
+
+        .route-point.start i {
+            border-color: var(--brand);
+            color: var(--brand);
+        }
+
+        .route-point.destination i {
+            border-color: #f15b4f;
+            color: #f15b4f;
+        }
+
+        .route-point b {
+            display: block;
+            color: var(--ink);
+            font-size: 11px;
+            max-width: 120px;
+            margin: 0 auto;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .route-point em {
+            display: block;
+            margin-top: 3px;
+            font-size: 11px;
+            font-style: normal;
+            font-weight: 700;
+            color: #0f766e;
+        }
+
+        .journey-distances {
+            position: relative;
+            z-index: 3;
+            min-width: max-content;
+            display: flex;
+            justify-content: space-around;
+            gap: 55px;
+            margin: 0 75px;
+            color: var(--ink);
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        .journey-cards-scroll {
+            overflow-x: auto;
+            padding: 18px 18px 8px;
+        }
+
+        .journey-card-row {
+            min-width: max-content;
+            display: flex;
+            align-items: stretch;
+            gap: 12px;
+        }
+
+        .journey-node {
+            width: 205px;
+            flex: 0 0 205px;
+            border: 1px solid #d8e0ea;
+            border-radius: 12px;
+            background: #fff;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, .04);
+        }
+
+        .journey-node.start-node {
+            border-color: #7bdcca;
+            background: linear-gradient(180deg, #f7fffc 0%, #fff 100%);
+        }
+
+        .journey-node.destination-node {
+            border-color: #ffb8b1;
+            background: linear-gradient(180deg, #fffafa 0%, #fff 100%);
+        }
+
+        .journey-node-head {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px 7px;
+            color: #1d4ed8;
+            font-size: 13px;
+        }
+
+        .start-node .journey-node-head {
+            color: #0f766e;
+        }
+
+        .destination-node .journey-node-head {
+            color: #ef4444;
+        }
+
+        .journey-number {
+            width: 27px;
+            height: 27px;
+            flex: 0 0 27px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            background: #2563eb;
+            color: #fff;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .start-number {
+            background: var(--brand);
+        }
+
+        .destination-number {
+            background: #f15b4f;
+        }
+
+        .journey-photo {
+            height: 66px;
+            margin: 0 10px;
+            border-radius: 7px;
+            overflow: hidden;
+            background: linear-gradient(135deg, #dbeafe, #eef6ff);
+            display: grid;
+            place-items: center;
+        }
+
+        .journey-photo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .charger-photo {
+            background: linear-gradient(135deg, #dcecff, #f2f8ff);
+            color: #2563eb;
+            font-size: 28px;
+        }
+
+        .city-photo {
+            background: linear-gradient(135deg, #d8f5ed, #eaf8ff);
+            color: #0f766e;
+            font-size: 27px;
+        }
+
+        .journey-place {
+            padding: 8px 12px 7px;
+            font-size: 12px;
+            font-weight: 800;
+            color: var(--ink);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .charger-power {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 6px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #0f766e;
+        }
+
+        .charger-power .power-icon {
+            font-size: 14px;
+        }
+
+        .journey-location-link {
+            padding: 0 12px 8px;
+        }
+
+        .station-map-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            color: #2563eb;
+            font-size: 10px;
+            font-weight: 800;
+        }
+
+        .station-map-link:hover {
+            text-decoration: underline;
+        }
+
+        .station-map-link.disabled {
+            color: #94a3b8;
+        }
+
+        .journey-meta {
+            padding: 0 12px 9px;
+        }
+
+        .journey-meta-row {
+            display: grid;
+            grid-template-columns: 19px 1fr;
+            gap: 6px;
+            align-items: center;
+            padding: 7px 0;
+            border-top: 1px solid #edf1f5;
+        }
+
+        .journey-meta-row>span:first-child {
+            color: #159b83;
+            font-size: 15px;
+            text-align: center;
+        }
+
+        .journey-meta-row small {
+            display: block;
+            color: var(--muted);
+            font-size: 9px;
+            line-height: 1.2;
+        }
+
+        .journey-meta-row b,
+        .journey-value {
+            display: block;
+            color: var(--ink);
+            font-size: 11px;
+            font-weight: 800;
+            margin-top: 2px;
+        }
+
+        .journey-value.muted {
+            color: #94a3b8;
+        }
+
+        .journey-arrow {
+            flex: 0 0 25px;
+            align-self: center;
+            color: #2496e8;
+            font-size: 26px;
+            font-weight: 400;
+            text-align: center;
+        }
+
+        .journey-summary-bar {
+            margin: 8px 18px 18px;
+            padding: 13px 16px;
+            border: 1px solid #e5eaf0;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            background: #fff;
+            box-shadow: 0 3px 12px rgba(15, 23, 42, .04);
+        }
+
+        .journey-summary-bar>div {
+            min-width: 110px;
+        }
+
+        .journey-summary-bar>div>span {
+            float: left;
+            margin-right: 8px;
+            font-size: 20px;
+            color: var(--brand);
+        }
+
+        .journey-summary-bar small {
+            display: block;
+            color: var(--muted);
+            font-size: 9px;
+        }
+
+        .journey-summary-bar b {
+            display: block;
+            margin-top: 2px;
+            color: var(--ink);
+            font-size: 13px;
+        }
+
+        @media (max-width: 800px) {
+            .journey-summary-bar {
+                flex-wrap: wrap;
+                gap: 15px;
+            }
+        }
+
+        /* FAQ + footer */
+        .faq {
+            max-width: 760px
+        }
+
+        .faq details {
+            border-bottom: 1px solid var(--line);
+            padding: 18px 0
+        }
+
+        .faq summary {
+            font-weight: 600;
+            color: var(--ink);
+            cursor: pointer
+        }
+
+        .faq p {
+            margin-top: 10px;
+            color: var(--muted);
+            font-size: 15px
+        }
+
+        footer {
+            background: var(--ink);
+            color: #cbd5e1;
+            padding: 40px 0;
+            font-size: 14px
+        }
+
+        footer .wrap {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            flex-wrap: wrap
+        }
+
+        footer .brand {
+            color: #fff
+        }
+
+        footer p {
+            color: #94a3b8;
+            max-width: 380px;
+            margin-top: 10px
+        }
+
+        footer nav {
+            display: flex;
+            gap: 24px;
+            align-items: flex-start
+        }
+
+        footer nav a:hover {
+            color: #fff
+        }
+
+        @media(max-width:960px) {
+
+            .hero .wrap,
+            .two {
+                grid-template-columns: 1fr
+            }
+
+            .hero {
+                padding-top: 56px
+            }
+
+            .hero-card {
+                max-width: 460px
+            }
+
+            .g4 {
+                grid-template-columns: repeat(2, 1fr)
+            }
+
+            .stats {
+                grid-template-columns: repeat(2, 1fr)
+            }
+
+            .steps3 {
+                grid-template-columns: 1fr
+            }
+
+            .links a:not(.btn) {
+                display: none
+            }
+        }
+
+        @media(max-width:680px) {
+            .wrap {
+                width: calc(100% - 28px)
+            }
+
+            .planner {
+                padding: 20px
+            }
+
+            section.block {
+                padding: 52px 0
+            }
+
+            .route {
+                grid-template-columns: 1fr
+            }
+
+            .swap {
+                width: 100%
+            }
+
+            .g2,
+            .g3,
+            .g4 {
+                grid-template-columns: 1fr
+            }
+
+            .share-row {
+                grid-template-columns: 1fr
+            }
+
+            .actions {
+                flex-direction: column
+            }
+
+            .cta .btn {
+                width: 100%
+            }
+        }
+
+        @media(max-width:420px) {
+            .stats {
+                grid-template-columns: 1fr
+            }
+        }
+
+        @media(prefers-reduced-motion:reduce) {
+            * {
+                animation: none !important;
+                transition: none !important;
+                scroll-behavior: auto !important
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="nav">
+        <div class="wrap">
+            <a class="brand" href="#top"><span class="logo"><svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M13 2 4 14h6l-1 8 9-12h-6z" />
+                    </svg></span>ChargePilot</a>
+            <nav class="links" aria-label="Primary">
+                <a href="#how">How it works</a><a href="#faq">FAQ</a>
+                <a class="btn primary" href="#planner">Plan a trip</a>
+            </nav>
+        </div>
+    </header>
+
+    <main id="top">
+        <section class="hero">
+            <div class="wrap">
+                <div>
+                    <h1>Electric road trips, planned in minutes.</h1>
+                    <p class="lead">Enter where you're going and how much battery you have. ChargePilot finds charging
+                        stops along the way, checks your range, and estimates time and cost.</p>
+                    <div class="cta">
+                        <a class="btn primary lg" href="#planner">Plan a trip</a>
+                        <a class="btn lg" href="#how">See how it works</a>
+                    </div>
+                </div>
+                <div class="hero-card" aria-hidden="true">
+                    <h3>Example plan</h3>
+                    <div class="hc-row"><span>Route</span><b>Hyderabad to Vijayawada</b></div>
+                    <div class="hc-row"><span>Distance</span><b>275 km</b></div>
+                    <div class="hc-row"><span>Charging stops</span><b>1</b></div>
+                    <div class="hc-row"><span>Range check</span><span class="tag">Arrive with reserve</span></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="block" id="how">
+            <div class="wrap">
+                <div class="head">
+                    <h2>How it works</h2>
+                    <p>Three steps from a route to a plan you can take with you.</p>
+                </div>
+                <div class="steps3">
+                    <div class="info">
+                        <div class="n">1</div>
+                        <h3>Describe your trip</h3>
+                        <p>Add your route, car range, current charge and any preferences such as connector type or
+                            tolls.</p>
+                    </div>
+                    <div class="info">
+                        <div class="n">2</div>
+                        <h3>Review the plan</h3>
+                        <p>See the recommended charging journey, battery analysis, travel time and estimated cost.
+                        </p>
+                    </div>
+                    <div class="info">
+                        <div class="n">3</div>
+                        <h3>Take it with you</h3>
+                        <p>Download the plan as a PDF or email it to yourself or a fellow traveller.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="block alt" id="planner">
+            <div class="wrap">
+                <div class="head">
+                    <h2>Plan your journey</h2>
+                    <p>All fields have sensible defaults. Only the route is required.</p>
+                </div>
+                <div class="planner">
+                    <div class="group">
+                        <h3>Route</h3>
+                        <p class="hint">Where are you starting and going?</p>
+                        <div class="route">
+                            <div class="field"><label for="from">Starting location</label><input id="from" class="ctl"
+                                    type="text" placeholder="e.g. Hyderabad" autocomplete="off"></div>
+                            <button type="button" class="swap" id="swapButton" title="Swap locations"
+                                aria-label="Swap start and destination"><svg viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7" />
+                                </svg></button>
+                            <div class="field"><label for="to">Destination</label><input id="to" class="ctl" type="text"
+                                    placeholder="e.g. Vijayawada" autocomplete="off"></div>
+                        </div>
+                    </div>
+                    <div class="group">
+                        <h3>Vehicle and battery</h3>
+                        <p class="hint">Use your car's real-world range for the best results.</p>
+                        <div class="grid g4">
+                            <div class="field"><label for="ev_range">Full-charge range</label>
+                                <div class="unit"><input id="ev_range" class="ctl" type="number" min="50" max="1500"
+                                        value="300"><span>km</span></div>
+                            </div>
+                            <div class="field"><label for="battery_percent">Current battery</label>
+                                <div class="unit"><input id="battery_percent" class="ctl" type="number" min="1"
+                                        max="100" value="80"><span>%</span></div>
+                            </div>
+                            <div class="field"><label for="connector">Connector type</label><select id="connector"
+                                    class="ctl">
+                                    <option value="Any">Any connector</option>
+                                    <option>CCS</option>
+                                    <option>CHAdeMO</option>
+                                    <option>Type 2</option>
+                                    <option>GB/T</option>
+                                </select></div>
+                        </div>
+                    </div>
+                    <div class="group">
+                        <h3>Priorities</h3>
+                        <p class="hint">What should matter most when choosing stops?</p>
+                        <div class="grid g2">
+                            <div class="field" role="group" aria-labelledby="l-d"><span class="lbl" id="l-d">Keep
+                                    detours short</span>
+                                <div class="seg">
+                                    <div><input type="radio" name="distance" id="distance_low" value="Low"><label
+                                            for="distance_low">Low</label></div>
+                                    <div><input type="radio" name="distance" id="distance_medium" value="Medium"
+                                            checked><label for="distance_medium">Medium</label></div>
+                                    <div><input type="radio" name="distance" id="distance_high" value="High"><label
+                                            for="distance_high">High</label></div>
+                                </div>
+                            </div>
+                            <div class="field" role="group" aria-labelledby="l-s"><span class="lbl" id="l-s">Prefer fast
+                                    charging</span>
+                                <div class="seg">
+                                    <div><input type="radio" name="speed" id="speed_low" value="Low"><label
+                                            for="speed_low">Low</label></div>
+                                    <div><input type="radio" name="speed" id="speed_medium" value="Medium"
+                                            checked><label for="speed_medium">Medium</label></div>
+                                    <div><input type="radio" name="speed" id="speed_high" value="High"><label
+                                            for="speed_high">High</label></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="group">
+                        <h3>Trip extras</h3>
+                        <p class="hint">Optional preferences for food, roads and timing.</p>
+                        <div class="grid g3">
+                            <div class="field"><span class="lbl">Food stops</span>
+                                <div class="toggle">Restaurants near chargers<label class="sw"><input type="checkbox"
+                                            id="food_required"
+                                            aria-label="Find restaurants near chargers"><i></i></label></div>
+                            </div>
+                            <div class="field"><label for="food_radius">Restaurant search radius</label><select
+                                    id="food_radius" class="ctl">
+                                    <option value="1000">1 km</option>
+                                    <option value="2000" selected>2 km</option>
+                                    <option value="3000">3 km</option>
+                                    <option value="5000">5 km</option>
+                                </select></div>
+                            <div class="field"><span class="lbl">Roads</span>
+                                <div class="toggle">Avoid toll roads<label class="sw"><input type="checkbox"
+                                            id="avoid_tolls" aria-label="Avoid toll roads"><i></i></label></div>
+                            </div>
+                            <div class="field"><label for="departure">Departure time</label><select id="departure"
+                                    class="ctl">
+                                    <option value="Now" selected>Depart now</option>
+                                    <option>Morning</option>
+                                    <option>Afternoon</option>
+                                    <option>Evening</option>
+                                    <option>Night</option>
+                                </select></div>
+                        </div>
+                    </div>
+                    <details class="adv">
+                        <summary>Advanced charging limits</summary>
+                        <div class="grid g2">
+                            <div class="field"><label for="minimum_power">Minimum charger power</label><select
+                                    id="minimum_power" class="ctl">
+                                    <option value="Any" selected>Any</option>
+                                    <option value="30">30+ kW</option>
+                                    <option value="50">50+ kW</option>
+                                    <option value="100">100+ kW</option>
+                                    <option value="150">150+ kW</option>
+                                </select></div>
+                            <div class="field"><label for="max_stops">Maximum charging stops</label><select
+                                    id="max_stops" class="ctl">
+                                    <option value="Any" selected>Let the planner decide</option>
+                                    <option value="1">1 stop</option>
+                                    <option value="2">2 stops</option>
+                                    <option value="3">3 stops</option>
+                                    <option value="4">4 stops</option>
+                                </select></div>
+                        </div>
+                    </details>
+                    <div class="actions">
+                        <button id="planButton" class="btn primary lg" type="button">Plan my journey</button>
+                        <button id="resetButton" class="btn lg" type="button">Reset</button>
+                    </div>
+                    <div id="loading" class="loading" role="status" aria-live="polite">
+                        <div class="ev-loader" aria-hidden="true">
+                            <div class="ev-road"></div>
+                            <div class="ev-car">⚡</div>
+                        </div>
+                        <div><b>Planning your journey</b><span id="loadingText">Collecting route data…</span></div>
+                    </div>
+                    <div id="errorBox" class="error" role="alert"></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="block" id="results" aria-live="polite">
+            <div class="wrap">
+                <div class="rhead">
+                    <div>
+                        <h2>Your charging plan</h2>
+                        <p id="resultRouteLabel"></p>
+                        <div id="planningStatus" class="plan-status">Plan ready</div>
+                    </div>
+                </div>
+                <div class="stats">
+                    <div class="card stat">
+                        <div class="v" id="routeDistance">—</div>
+                        <div class="l">Route distance</div>
+                    </div>
+                    <div class="card stat">
+                        <div class="v" id="travelTime">—</div>
+                        <div class="l">Driving time</div>
+                    </div>
+                    <div class="card stat">
+                        <div class="v" id="chargingStops">—</div>
+                        <div class="l">Charging stops</div>
+                    </div>
+                    <div class="card stat">
+                        <div class="v" id="chargingCost">—</div>
+                        <div class="l">Estimated charging cost</div>
+                    </div>
+                </div>
+                <div class="two">
+                    <div class="card">
+                        <div class="ph">
+                            <h3>Recommendation</h3><span>AI-generated</span>
+                        </div>
+                        <div class="pb">
+                            <div id="recommendation" class="rec">—</div>
+                            <div id="journeySummary" class="sum"></div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="ph">
+                            <h3>Battery and range</h3><span>At departure</span>
+                        </div>
+                        <div class="pb">
+                            <div class="bat">
+                                <div class="bat-ico">
+                                    <div id="batteryFill" class="bat-fill"></div>
+                                </div>
+                                <div><b id="batteryValue">—</b><small>current charge</small></div>
+                            </div>
+                            <div id="batteryAnalysis" class="bat-text"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card journey-card journey-plan-card">
+                    <div class="ph">
+                        <h3>Charging journey</h3>
+                        <span id="journeyStepCount">0 stops</span>
+                    </div>
+                    <div id="journeyTimeline" class="journey-timeline">
+                        <div class="empty">No charging journey returned yet.</div>
+                    </div>
+                </div>
+                <div class="card share">
+                    <h3>Save or share this plan</h3>
+                    <div class="share-row">
+                        <button id="pdfButton" class="btn primary" type="button">Generate PDF</button>
+                        <button id="downloadButton" class="btn" type="button" disabled>Download PDF</button>
+                        <div class="mail"><input id="email" class="ctl" type="email" placeholder="Email address"
+                                aria-label="Email address" autocomplete="email"><button id="emailButton" class="btn"
+                                type="button">Send</button></div>
+                    </div>
+                    <div id="pdfMessage" class="msg" role="status"></div>
+                </div>
+                <p class="note">Charging time, range and cost figures are AI-generated estimates based on your inputs
+                    and available station data. Live charger availability appears only when a live-status source is
+                    connected. OpenStreetMap and charging-station datasets can be incomplete or out of date, so confirm
+                    key stops before you travel.</p>
+            </div>
+        </section>
+
+        <section class="block alt" id="faq">
+            <div class="wrap">
+                <div class="head">
+                    <h2>Frequently asked questions</h2>
+                </div>
+                <div class="faq">
+                    <details>
+                        <summary>How accurate are the estimates?</summary>
+                        <p>Range, time and cost are estimates based on your inputs and station data. Real results vary
+                            with speed, weather, load and terrain, so keep a safety margin.</p>
+                    </details>
+                    <details>
+                        <summary>Does it show live charger availability?</summary>
+                        <p>Only when a live-status source is connected for that station. Otherwise the plan shows that
+                            status is unavailable.</p>
+                    </details>
+                    <details>
+                        <summary>Which connectors are supported?</summary>
+                        <p>CCS, CHAdeMO, Type 2 and GB/T. Choose "Any connector" to see every option.</p>
+                    </details>
+                    <details>
+                        <summary>Can I share the plan?</summary>
+                        <p>Yes. Generate a PDF, then download it or email it from the results section.</p>
+                    </details>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="wrap">
+            <div><a class="brand" href="#top"><span class="logo"><svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M13 2 4 14h6l-1 8 9-12h-6z" />
+                        </svg></span>ChargePilot</a>
+                <p>EV journey and charging planner. Estimates only; always confirm stops before you travel.</p>
+            </div>
+            <nav aria-label="Footer"><a href="#how">How it works</a><a href="#planner">Planner</a><a href="#faq">FAQ</a>
+            </nav>
+        </div>
+    </footer>
+
+    <script>
+        // =========================================================
+        // BACKEND CONFIGURATION
+        // =========================================================
+        // Local Flask backend:
+        // http://127.0.0.1:5000
+        //
+        // When you deploy the backend to Render, replace this with
+        // your HTTPS Render backend URL.
+        const API_BASE_URL = "http://127.0.0.1:5000";
+
+        let latestResult = null,
+            generatedPdfFilename = null,
+            loadingTimer = null;
+
+        const $ = id => document.getElementById(id);
+
+        const esc = v => v == null
+            ? ""
+            : String(v)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+
+        const num = (id, fb = 0) => {
+            const v = parseFloat($(id).value);
+            return Number.isFinite(v) ? v : fb;
+        };
+
+        const radio = (n, fb) =>
+            (document.querySelector(`input[name="${n}"]:checked`) || {}).value || fb;
+
+        const fmt = (v, d = 0) =>
+            (v === null || v === "" || !Number.isFinite(Number(v)))
+                ? "—"
+                : Number(v).toLocaleString("en-IN", {
+                    minimumFractionDigits: d,
+                    maximumFractionDigits: d
+                });
+
+        function fmtTime(m) {
+            m = Number(m);
+            if (!Number.isFinite(m)) return "—";
+
+            const r = Math.max(0, Math.round(m));
+            const h = Math.floor(r / 60);
+            const x = r % 60;
+
+            if (h === 0) return `${x} min`;
+            if (x === 0) return `${h} hr`;
+            return `${h} hr ${x} min`;
+        }
+
+        function actionOf(leg) {
+            return String(leg?.action || "").trim().toUpperCase();
+        }
+
+        function isChargeLeg(leg) {
+            return actionOf(leg) === "CHARGE";
+        }
+
+        function isArrivalLeg(leg) {
+            return actionOf(leg) === "ARRIVE";
+        }
+
+        function stationName(station) {
+            return String(
+                station?.name ||
+                station?.title ||
+                station?.station_name ||
+                ""
+            ).trim();
+        }
+
+        function findStationByName(name, stations) {
+            const target = String(name || "").trim().toLowerCase();
+            if (!target) return null;
+
+            return (stations || []).find(s => {
+                const n = stationName(s).toLowerCase();
+                return n === target || n.includes(target) || target.includes(n);
+            }) || null;
+        }
+
+        $("swapButton").addEventListener("click", () => {
+            const t = $("from").value;
+            $("from").value = $("to").value;
+            $("to").value = t;
+        });
+
+        $("resetButton").addEventListener("click", () => {
+            const s = (i, v) => $(i).value = v;
+
+            s("from", "");
+            s("to", "");
+            s("ev_range", 300);
+            s("battery_percent", 80);
+            s("connector", "Any");
+            s("food_radius", 2000);
+            s("departure", "Now");
+            s("minimum_power", "Any");
+            s("max_stops", "Any");
+
+            $("food_required").checked = false;
+            $("avoid_tolls").checked = false;
+            $("distance_medium").checked = true;
+            $("speed_medium").checked = true;
+
+            document.querySelectorAll(".invalid")
+                .forEach(e => e.classList.remove("invalid"));
+
+            clearError();
+
+            $("results").classList.remove("on");
+
+            latestResult = null;
+            generatedPdfFilename = null;
+
+            $("downloadButton").disabled = true;
+
+            setMsg("");
+
+            $("journeyTimeline").innerHTML =
+                `<div class="empty">No journey steps returned yet.</div>`;
+
+            $("planner").scrollIntoView({
+                behavior: "smooth"
+            });
+        });
+
+        function startLoading() {
+            $("loading").classList.add("on");
+            $("planButton").disabled = true;
+
+            const messages = [
+                "Collecting route data…",
+                "Finding charging stations…",
+                "Checking charger information…",
+                "Looking for food options…",
+                "Comparing charging choices…",
+                "Building your multi-stop journey plan…"
+            ];
+
+            let i = 0;
+
+            $("loadingText").textContent = messages[0];
+
+            loadingTimer = setInterval(() => {
+                i = (i + 1) % messages.length;
+                $("loadingText").textContent = messages[i];
+            }, 1800);
+        }
+
+        function stopLoading() {
+            $("loading").classList.remove("on");
+            $("planButton").disabled = false;
+
+            if (loadingTimer) {
+                clearInterval(loadingTimer);
+                loadingTimer = null;
+            }
+        }
+
+        function collectInput() {
+            return {
+                from: $("from").value.trim(),
+                to: $("to").value.trim(),
+
+                ev_range: num("ev_range", 300),
+                battery_percent: num("battery_percent", 80),
+                distance_priority:
+                    radio("distance", "Medium"),
+
+                speed_priority:
+                    radio("speed", "Medium"),
+
+                food_required:
+                    $("food_required").checked,
+
+                food_radius:
+                    num("food_radius", 2000),
+
+                avoid_tolls:
+                    $("avoid_tolls").checked,
+
+                connector:
+                    $("connector").value,
+
+                departure:
+                    $("departure").value,
+
+                minimum_power:
+                    $("minimum_power").value,
+
+                max_stops:
+                    $("max_stops").value
+            };
+        }
+
+        function fail(id, msg) {
+            const e = $(id);
+
+            if (e) {
+                e.classList.add("invalid");
+                e.focus();
+            }
+
+            showError(msg);
+            return false;
+        }
+
+        function validateInput(d) {
+            document.querySelectorAll(".invalid")
+                .forEach(e => e.classList.remove("invalid"));
+
+            if (!d.from)
+                return fail(
+                    "from",
+                    "Enter a starting location."
+                );
+
+            if (!d.to)
+                return fail(
+                    "to",
+                    "Enter a destination."
+                );
+
+            if (
+                d.from.toLowerCase() ===
+                d.to.toLowerCase()
+            )
+                return fail(
+                    "to",
+                    "The start and destination must be different."
+                );
+
+            if (
+                d.ev_range < 50 ||
+                d.ev_range > 1500
+            )
+                return fail(
+                    "ev_range",
+                    "Range must be between 50 and 1,500 km."
+                );
+
+            if (
+                d.battery_percent < 1 ||
+                d.battery_percent > 100
+            )
+                return fail(
+                    "battery_percent",
+                    "Battery must be between 1% and 100%."
+                );
+
+            return true;
+        }
+
+        function showError(message) {
+            const e = $("errorBox");
+
+            e.textContent = message;
+            e.classList.add("on");
+
+            e.scrollIntoView({
+                behavior: "smooth",
+                block: "center"
+            });
+        }
+
+        function clearError() {
+            const e = $("errorBox");
+
+            e.classList.remove("on");
+            e.textContent = "";
+        }
+
+        $("planButton").addEventListener(
+            "click",
+            planJourney
+        );
+
+        async function planJourney() {
+            if ($("planButton").disabled)
+                return;
+
+            clearError();
+
+            const data = collectInput();
+
+            if (!validateInput(data))
+                return;
+
+            startLoading();
+
+            try {
+                const res = await fetch(
+                    `${API_BASE_URL}/plan`,
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify(data)
+                    }
+                );
+
+                let result;
+
+                try {
+                    result = await res.json();
+                } catch {
+                    throw new Error(
+                        "The server returned an invalid response. Try again in a moment."
+                    );
+                }
+
+                if (!res.ok) {
+                    throw new Error(
+                        result.error ||
+                        result.message ||
+                        `Journey planning failed (${res.status}).`
+                    );
+                }
+
+                /*
+                 * IMPORTANT:
+                 * Clear any stale error from an earlier failed
+                 * request. This fixes the case where a successful
+                 * plan was displayed while the old red error
+                 * message remained visible.
+                 */
+                clearError();
+
+                latestResult = result;
+                generatedPdfFilename = null;
+
+                $("downloadButton").disabled = true;
+
+                setMsg("");
+
+                displayResults(
+                    result,
+                    data
+                );
+
+            } catch (e) {
+                console.error(
+                    "ChargePilot error:",
+                    e
+                );
+
+                showError(
+                    e instanceof TypeError
+                        ? "Can't reach the planner. Check that the Flask server is running and try again."
+                        : (
+                            e.message ||
+                            "Unable to generate the journey plan."
+                        )
+                );
+
+            } finally {
+                stopLoading();
+            }
+        }
+
+        function displayResults(r, input) {
+            $("results").classList.add("on");
+
+            $("resultRouteLabel").textContent =
+                `${input.from} to ${input.to}`;
+
+            const distance =
+                Number(r.route_distance);
+
+            $("routeDistance").textContent =
+                Number.isFinite(distance)
+                    ? `${fmt(distance, 1)} km`
+                    : "—";
+
+            $("travelTime").textContent =
+                fmtTime(r.travel_time_minutes);
+
+            $("chargingStops").textContent =
+                r.charging_stops ?? "—";
+
+            $("chargingCost").textContent =
+                (
+                    r.charging_cost != null &&
+                    Number.isFinite(
+                        Number(r.charging_cost)
+                    )
+                )
+                    ? `₹${fmt(r.charging_cost)}`
+                    : "—";
+
+            $("recommendation").textContent =
+                r.recommendation ||
+                "No recommendation was returned.";
+
+            $("journeySummary").textContent =
+                r.journey_summary || "";
+
+            /*
+             * Explicit backend range values are preferred.
+             * Fall back to the user's input only if the backend
+             * did not return them.
+             */
+            const battery = Math.max(
+                0,
+                Math.min(
+                    100,
+                    Number(
+                        r.battery_percent ??
+                        input.battery_percent
+                    )
+                )
+            );
+
+            const evRange = Number(
+                r.ev_range_km ??
+                input.ev_range
+            );
+
+            const availableRange = Number(
+                r.available_range_km ??
+                (
+                    evRange *
+                    battery /
+                    100
+                )
+            );
+
+            $("batteryValue").textContent =
+                `${fmt(battery)}%`;
+
+            $("batteryFill").style.width =
+                `${battery}%`;
+
+            $("batteryFill").className =
+                "bat-fill" +
+                (
+                    battery < 15
+                        ? " crit"
+                        : battery < 30
+                            ? " low"
+                            : ""
+                );
+
+            const rangeText =
+                r.battery_range_analysis ||
+                `Full-charge range: ${fmt(evRange, 1)} km. ` +
+                `Estimated range available now: ${fmt(availableRange, 1)} km.`;
+
+            $("batteryAnalysis").textContent =
+                rangeText;
+
+            updatePlanningStatus(r);
+
+            displayJourneyTimeline(
+                r.journey_legs || [],
+                r
+            );
+
+            $("results").scrollIntoView({
+                behavior: "smooth",
+                block: "start"
+            });
+        }
+
+        function updatePlanningStatus(r) {
+            const el = $("planningStatus");
+            const chargingRequired = Boolean(r.charging_required);
+
+            el.textContent = chargingRequired
+                ? "✓ Charging plan ready"
+                : "✓ No charging stop required";
+
+            el.className = "plan-status";
+        }
+
+
+        function mapsUrlForStation(station) {
+            if (!station) return "";
+            if (station.map_url) return String(station.map_url);
+
+            const lat = Number(
+                station.latitude ?? station.lat
+            );
+            const lon = Number(
+                station.longitude ?? station.lon ?? station.lng
+            );
+
+            if (Number.isFinite(lat) && Number.isFinite(lon)) {
+                return `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
+            }
+
+            const name = stationName(station);
+            return name
+                ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(name)}`
+                : "";
+        }
+
+        function displayJourneyTimeline(legs, result) {
+            const container = $("journeyTimeline");
+            const routeDistance = Number(result.route_distance);
+            const inputBattery = Number(
+                result.battery_percent ?? result.departure_battery_percent
+            );
+
+            const actualLegs = Array.isArray(legs) ? legs : [];
+            const chargeLegs = actualLegs.filter(isChargeLeg);
+            const destinationLeg = actualLegs.find(isArrivalLeg);
+
+            const startName =
+                result.trip_input?.from ||
+                result.from ||
+                "Start";
+
+            const destinationName =
+                result.trip_input?.to ||
+                result.to ||
+                "Destination";
+
+            const safeNum = value => {
+                const n = Number(value);
+                return Number.isFinite(n) ? n : null;
+            };
+
+            const batteryHtml = value => {
+                const n = safeNum(value);
+                return n === null
+                    ? `<span class="journey-value muted">—</span>`
+                    : `<span class="journey-value">${fmt(n)}%</span>`;
+            };
+
+            const timeHtml = value => {
+                const n = safeNum(value);
+                return n === null || n <= 0
+                    ? `<span class="journey-value muted">—</span>`
+                    : `<span class="journey-value">${fmtTime(n)}</span>`;
+            };
+
+            if (!chargeLegs.length && !destinationLeg) {
+                container.innerHTML = `
+                    <div class="empty">
+                        No detailed charging journey was returned.
+                    </div>`;
+                $("journeyStepCount").textContent = "0 stops";
+                return;
+            }
+
+            const stops = chargeLegs.map((leg, index) => {
+                const station = findStationByName(
+                    leg.charging_station || leg.to,
+                    result.stations || []
+                ) || {};
+
+                return {
+                    leg,
+                    station,
+                    name: leg.charging_station || leg.to || `Charging Stop ${index + 1}`,
+                    distance: safeNum(leg.leg_distance_km),
+                    arrivalBattery: safeNum(leg.arrival_battery_percent),
+                    chargeTo: safeNum(leg.charge_to_percent),
+                    chargeTime: safeNum(leg.estimated_charging_time_minutes),
+                    powerKw: safeNum(
+                        leg.charger_power_kw ??
+                        leg.power_kw ??
+                        station.power_kw ??
+                        station.max_power_kw ??
+                        station.power
+                    ),
+                    connector: station.connector || leg.connector || "",
+                    mapUrl: mapsUrlForStation(station)
+                };
+            });
+
+            const finalDistance = destinationLeg
+                ? safeNum(destinationLeg.leg_distance_km)
+                : Math.max(
+                    0,
+                    routeDistance - stops.reduce(
+                        (sum, stop) => sum + (stop.distance || 0),
+                        0
+                    )
+                );
+
+            const finalBattery = destinationLeg
+                ? safeNum(destinationLeg.arrival_battery_percent)
+                : null;
+
+            $("journeyStepCount").textContent =
+                `${stops.length} charging stop${stops.length === 1 ? "" : "s"}`;
+
+            const imageFor = (station, type) => {
+                if (type === "start") {
+                    return `<div class="journey-photo city-photo">⌂</div>`;
+                }
+                if (type === "destination") {
+                    return `<div class="journey-photo city-photo">◆</div>`;
+                }
+
+                const url = station && (
+                    station.image_url ||
+                    station.image ||
+                    station.photo_url ||
+                    station.photo
+                );
+
+                return url
+                    ? `<div class="journey-photo"><img src="${esc(url)}" alt="Charging station"></div>`
+                    : `<div class="journey-photo charger-photo"><span>⚡</span></div>`;
+            };
+
+            const stopCards = stops.map((stop, index) => {
+                const station = stop.station || {};
+                const mapUrl = stop.mapUrl;
+
+                const mapLink = mapUrl
+                    ? `<a class="station-map-link" href="${esc(mapUrl)}" target="_blank" rel="noopener noreferrer">Open in Google Maps ↗</a>`
+                    : `<span class="station-map-link disabled">Map link unavailable</span>`;
+
+                return `
+                    <div class="journey-node-wrap">
+                        <article class="journey-node stop-node">
+                            <div class="journey-node-head">
+                                <span class="journey-number">${index + 1}</span>
+                                <strong>Stop ${index + 1}</strong>
+                            </div>
+                            ${imageFor(station, "stop")}
+                            <div class="journey-place">${esc(stop.name)}</div>
+                            <div class="charger-power">
+                                <span class="power-icon">⚡</span>
+                                <span>${stop.powerKw !== null && stop.powerKw > 0 ? `${fmt(stop.powerKw, 1)} kW charger` : "Charger power unavailable"}</span>
+                            </div>
+                            <div class="journey-location-link">${mapLink}</div>
+                            <div class="journey-meta">
+                                <div class="journey-meta-row">
+                                    <span>↔</span>
+                                    <div><small>Distance from previous</small><b>${stop.distance !== null ? `${fmt(stop.distance, 0)} km` : "—"}</b></div>
+                                </div>
+                                <div class="journey-meta-row">
+                                    <span>▣</span>
+                                    <div><small>Battery on arrival</small>${batteryHtml(stop.arrivalBattery)}</div>
+                                </div>
+                                <div class="journey-meta-row">
+                                    <span>⚡</span>
+                                    <div><small>Charge to</small><b>${stop.chargeTo !== null ? `${fmt(stop.chargeTo)}%` : "—"}</b></div>
+                                </div>
+                                <div class="journey-meta-row">
+                                    <span>◷</span>
+                                    <div><small>Charging time</small>${timeHtml(stop.chargeTime)}</div>
+                                </div>
+                            </div>
+                        </article>
+                    </div>`;
+            }).join(`
+                <div class="journey-arrow">→</div>
+            `);
+
+            const cards = `
+                <article class="journey-node start-node">
+                    <div class="journey-node-head">
+                        <span class="journey-number start-number">0</span>
+                        <strong>Start</strong>
+                    </div>
+                    ${imageFor(null, "start")}
+                    <div class="journey-place">${esc(startName)}</div>
+                    <div class="journey-meta">
+                        <div class="journey-meta-row">
+                            <span>▣</span>
+                            <div><small>Battery Level</small>${batteryHtml(inputBattery)}</div>
+                        </div>
+                        <div class="journey-meta-row">
+                            <span>◷</span>
+                            <div><small>Departure</small><b>${esc(result.trip_input?.departure || "Now")}</b></div>
+                        </div>
+                    </div>
+                </article>
+                <div class="journey-arrow">→</div>
+                ${stopCards}
+                <div class="journey-arrow">→</div>
+                <article class="journey-node destination-node">
+                    <div class="journey-node-head">
+                        <span class="journey-number destination-number">${stops.length + 1}</span>
+                        <strong>Destination</strong>
+                    </div>
+                    ${imageFor(null, "destination")}
+                    <div class="journey-place">${esc(destinationName)}</div>
+                    <div class="journey-meta">
+                        <div class="journey-meta-row">
+                            <span>↔</span>
+                            <div><small>Distance from previous</small><b>${finalDistance !== null ? `${fmt(finalDistance, 0)} km` : "—"}</b></div>
+                        </div>
+                        <div class="journey-meta-row">
+                            <span>▣</span>
+                            <div><small>Battery on arrival</small>${batteryHtml(finalBattery)}</div>
+                        </div>
+                        <div class="journey-meta-row">
+                            <span>◷</span>
+                            <div><small>Arrival</small><b>${esc(result.arrival_time || "—")}</b></div>
+                        </div>
+                    </div>
+                </article>
+            `;
+
+            container.innerHTML = `
+                <div class="journey-route-visual">
+                    <div class="journey-route-line"></div>
+                    <div class="journey-top-points">
+                        <div class="route-point start"><span>Start</span><i>●</i><b>${esc(startName)}</b></div>
+                        ${stops.map((stop, index) => `
+                            <div class="route-point stop"><span>Stop ${index + 1}</span><i>⚡</i><b>${esc(stop.name)}</b><em>${stop.powerKw !== null && stop.powerKw > 0 ? `${fmt(stop.powerKw, 1)} kW` : "Power N/A"}</em></div>
+                        `).join("")}
+                        <div class="route-point destination"><span>Destination</span><i>●</i><b>${esc(destinationName)}</b></div>
+                    </div>
+                    <div class="journey-distances">
+                        ${stops.map(stop => `<span>${stop.distance !== null ? `${fmt(stop.distance, 0)} km` : "—"}</span>`).join("")}
+                        <span>${finalDistance !== null ? `${fmt(finalDistance, 0)} km` : "—"}</span>
+                    </div>
+                </div>
+
+                <div class="journey-cards-scroll">
+                    <div class="journey-card-row">
+                        ${cards}
+                    </div>
+                </div>
+
+                <div class="journey-summary-bar">
+                    <div><span>🛣</span><small>Total Distance</small><b>${routeDistance ? `${fmt(routeDistance, 0)} km` : "—"}</b></div>
+                    <div><span>◷</span><small>Total Travel Time</small><b>${result.travel_time_minutes ? fmtTime(result.travel_time_minutes) : "—"}</b></div>
+                    <div><span>⚡</span><small>Total Charging Stops</small><b>${stops.length}</b></div>
+                    <div><span>▣</span><small>Estimated Energy Used</small><b>${result.estimated_energy_used_kwh ? `~ ${fmt(result.estimated_energy_used_kwh, 1)} kWh` : (result.ev_range_km && routeDistance ? `~ ${fmt(routeDistance / Number(result.ev_range_km) * 100, 0)}% range` : "—")}</b></div>
+                </div>
+            `;
+        }
+
+        function setMsg(
+            text,
+            kind = ""
+        ) {
+            const m =
+                $("pdfMessage");
+
+            m.textContent =
+                text;
+
+            m.className =
+                "msg " + kind;
+        }
+
+        $("pdfButton").addEventListener(
+            "click",
+            async () => {
+
+                if (!latestResult) {
+                    setMsg(
+                        "Generate a journey plan first.",
+                        "err"
+                    );
+                    return;
+                }
+
+                setMsg(
+                    "Generating PDF…"
+                );
+
+                $("pdfButton").disabled =
+                    true;
+
+                try {
+
+                    const res =
+                        await fetch(
+                            `${API_BASE_URL}/generate-pdf`,
+                            {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type":
+                                        "application/json"
+                                },
+                                body:
+                                    JSON.stringify(
+                                        latestResult
+                                    )
+                            }
+                        );
+
+                    const d =
+                        await res.json();
+
+                    if (!res.ok)
+                        throw new Error(
+                            d.error ||
+                            "PDF generation failed."
+                        );
+
+                    generatedPdfFilename =
+                        d.filename;
+
+                    $("downloadButton").disabled =
+                        false;
+
+                    setMsg(
+                        `PDF ready: ${d.filename || "journey plan"}`,
+                        "ok"
+                    );
+
+                } catch (e) {
+
+                    console.error(e);
+
+                    setMsg(
+                        e.message ||
+                        "PDF generation failed.",
+                        "err"
+                    );
+
+                } finally {
+
+                    $("pdfButton").disabled =
+                        false;
+                }
+            }
+        );
+
+        $("downloadButton").addEventListener(
+            "click",
+            () => {
+
+                if (!generatedPdfFilename) {
+                    setMsg(
+                        "Generate the PDF first.",
+                        "err"
+                    );
+                    return;
+                }
+
+                window.location.href =
+                    `${API_BASE_URL}/download-pdf/${encodeURIComponent(
+                        generatedPdfFilename
+                    )}`;
+            }
+        );
+
+        $("emailButton").addEventListener(
+            "click",
+            async () => {
+
+                const email =
+                    $("email").value.trim();
+
+                if (
+                    !email ||
+                    !$("email").checkValidity()
+                ) {
+
+                    setMsg(
+                        email
+                            ? "Enter a valid email address."
+                            : "Enter an email address.",
+                        "err"
+                    );
+
+                    $("email").focus();
+
+                    return;
+                }
+
+                if (!generatedPdfFilename) {
+                    setMsg(
+                        "Generate the PDF before sending it.",
+                        "err"
+                    );
+                    return;
+                }
+
+                setMsg(
+                    "Sending…"
+                );
+
+                $("emailButton").disabled =
+                    true;
+
+                try {
+
+                    const res =
+                        await fetch(
+                            `${API_BASE_URL}/send-email`,
+                            {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type":
+                                        "application/json"
+                                },
+                                body:
+                                    JSON.stringify({
+                                        email,
+                                        pdf_filename:
+                                            generatedPdfFilename
+                                    })
+                            }
+                        );
+
+                    const d =
+                        await res.json();
+
+                    if (!res.ok)
+                        throw new Error(
+                            d.error ||
+                            "Unable to send the email."
+                        );
+
+                    setMsg(
+                        d.message ||
+                        "Journey plan sent.",
+                        "ok"
+                    );
+
+                } catch (e) {
+
+                    console.error(e);
+
+                    setMsg(
+                        e.message ||
+                        "Unable to send the email.",
+                        "err"
+                    );
+
+                } finally {
+
+                    $("emailButton").disabled =
+                        false;
+                }
+            }
+        );
+
+        ["from", "to"].forEach(
+            id =>
+                $(id).addEventListener(
+                    "keydown",
+                    e => {
+                        if (e.key === "Enter")
+                            planJourney();
+                    }
+                )
+        );
+
+        [
+            "from",
+            "to",
+            "ev_range",
+            "battery_percent",
+        ].forEach(
+            id =>
+                $(id).addEventListener(
+                    "input",
+                    e =>
+                        e.target.classList.remove(
+                            "invalid"
+                        )
+                )
+        );
+    </script>
+</body>
+
+</html>
