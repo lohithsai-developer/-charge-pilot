@@ -26,12 +26,13 @@ CORS(
     resources={
         r"/*": {
             "origins": [
-                "https://charge-pilot-ea2d9.web.app"
+                "https://charge-pilot-ea2d9.web.app",
+                "https://charge-pilot.onrender.com",
+                "http://localhost:5000"
             ]
         }
     }
 )
-
 
 # =========================================================
 # GENERATED FILES
