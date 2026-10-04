@@ -1,4 +1,5 @@
 Flask
+flask-cors
 python-dotenv
 requests
 google-genai
@@ -7,3 +8,5 @@ reportlab
 google-api-python-client
 google-auth-httplib2
 google-auth-oauthlib
+groq
+gunicorn
