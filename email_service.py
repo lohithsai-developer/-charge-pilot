@@ -28,23 +28,118 @@ SCOPES = [
 
 
 # =========================================================
+# FILE LOCATIONS
+# =========================================================
+
+# Local development:
+#     C:\Users\Lohit\OneDrive\Desktop\CHARGE_PILOT\
+#
+# Render Secret Files:
+#     /etc/secrets/
+
+
+def get_secret_file(filename):
+    """
+    Return the correct path for a secret file.
+
+    Priority:
+    1. Render Secret Files
+    2. Local project folder
+    """
+
+    render_path = os.path.join(
+        "/etc/secrets",
+        filename
+    )
+
+    local_path = os.path.join(
+        os.path.dirname(
+            os.path.abspath(__file__)
+        ),
+        filename
+    )
+
+    # Render
+    if os.path.exists(render_path):
+        return render_path
+
+    # Local
+    if os.path.exists(local_path):
+        return local_path
+
+    return None
+
+
+# =========================================================
 # GET GMAIL SERVICE
 # =========================================================
 
 def get_gmail_service():
 
+    print()
+    print("=" * 60)
+    print("CHARGEPILOT GMAIL SERVICE")
+    print("=" * 60)
+
     creds = None
+
+    # -----------------------------------------------------
+    # FIND TOKEN
+    # -----------------------------------------------------
+
+    token_path = get_secret_file(
+        "token.json"
+    )
+
+    credentials_path = get_secret_file(
+        "credentials.json"
+    )
+
+    print()
+
+    if token_path:
+        print(
+            f"✓ Gmail token found: {token_path}"
+        )
+    else:
+        print(
+            "⚠ Gmail token.json not found."
+        )
+
+    if credentials_path:
+        print(
+            f"✓ Gmail credentials found: "
+            f"{credentials_path}"
+        )
+    else:
+        print(
+            "⚠ Gmail credentials.json not found."
+        )
 
     # -----------------------------------------------------
     # LOAD EXISTING TOKEN
     # -----------------------------------------------------
 
-    if os.path.exists("token.json"):
+    if token_path:
 
-        creds = Credentials.from_authorized_user_file(
-            "token.json",
-            SCOPES
-        )
+        try:
+
+            creds = Credentials.from_authorized_user_file(
+                token_path,
+                SCOPES
+            )
+
+            print(
+                "✓ Existing Gmail authorization loaded."
+            )
+
+        except Exception as error:
+
+            print(
+                f"⚠ Could not load token.json: {error}"
+            )
+
+            creds = None
 
     # -----------------------------------------------------
     # REFRESH EXPIRED TOKEN
@@ -56,24 +151,87 @@ def get_gmail_service():
         and creds.refresh_token
     ):
 
-        creds.refresh(Request())
+        try:
+
+            print(
+                "🔄 Gmail token expired."
+            )
+
+            print(
+                "🔄 Refreshing Gmail authorization..."
+            )
+
+            creds.refresh(
+                Request()
+            )
+
+            print(
+                "✓ Gmail token refreshed successfully."
+            )
+
+        except Exception as error:
+
+            print(
+                f"❌ Gmail token refresh failed: {error}"
+            )
+
+            creds = None
 
     # -----------------------------------------------------
-    # FIRST-TIME AUTHENTICATION
+    # CHECK VALID CREDENTIALS
+    # -----------------------------------------------------
+
+    if creds and creds.valid:
+
+        print(
+            "✓ Gmail credentials are valid."
+        )
+
+    # -----------------------------------------------------
+    # FIRST-TIME LOCAL AUTHENTICATION
     # -----------------------------------------------------
 
     if not creds or not creds.valid:
 
-        if not os.path.exists("credentials.json"):
+        # -------------------------------------------------
+        # RENDER ENVIRONMENT
+        # -------------------------------------------------
 
-            raise FileNotFoundError(
-                "credentials.json not found. "
-                "Please add your Gmail OAuth credentials "
-                "to the ChargePilot project folder."
+        if os.path.exists("/etc/secrets"):
+
+            raise RuntimeError(
+                "Gmail authorization is not available on Render. "
+                "Authorize Gmail locally first and upload the "
+                "generated token.json to Render Secret Files."
             )
 
+        # -------------------------------------------------
+        # LOCAL ENVIRONMENT
+        # -------------------------------------------------
+
+        if not credentials_path:
+
+            raise FileNotFoundError(
+                "credentials.json not found.\n\n"
+                "For local development, place your Google OAuth "
+                "credentials file here:\n"
+                f"{os.path.dirname(os.path.abspath(__file__))}"
+                "\n\n"
+                "For Render, upload credentials.json and "
+                "token.json under Secret Files."
+            )
+
+        print()
+        print(
+            "🔐 Starting Gmail OAuth authentication..."
+        )
+
+        print(
+            "🌐 A browser window will open for Google login."
+        )
+
         flow = InstalledAppFlow.from_client_secrets_file(
-            "credentials.json",
+            credentials_path,
             SCOPES
         )
 
@@ -81,27 +239,65 @@ def get_gmail_service():
             port=0
         )
 
-        # Save authentication token
-        with open(
-            "token.json",
-            "w"
-        ) as token:
+        # -------------------------------------------------
+        # SAVE TOKEN LOCALLY
+        # -------------------------------------------------
 
-            token.write(
+        local_token_path = os.path.join(
+            os.path.dirname(
+                os.path.abspath(__file__)
+            ),
+            "token.json"
+        )
+
+        with open(
+            local_token_path,
+            "w",
+            encoding="utf-8"
+        ) as token_file:
+
+            token_file.write(
                 creds.to_json()
             )
+
+        print()
+        print(
+            f"✓ Gmail authorization completed."
+        )
+
+        print(
+            f"✓ Token saved to: {local_token_path}"
+        )
 
     # -----------------------------------------------------
     # BUILD GMAIL API SERVICE
     # -----------------------------------------------------
 
-    service = build(
-        "gmail",
-        "v1",
-        credentials=creds
-    )
+    try:
 
-    return service
+        service = build(
+            "gmail",
+            "v1",
+            credentials=creds
+        )
+
+        print(
+            "✓ Gmail API service created successfully."
+        )
+
+        print(
+            "=" * 60
+        )
+
+        return service
+
+    except Exception as error:
+
+        print(
+            f"❌ Failed to create Gmail service: {error}"
+        )
+
+        raise
 
 
 # =========================================================
@@ -180,7 +376,10 @@ ChargePilot AI
 
     message = EmailMessage()
 
-    # Sender
+    # -----------------------------------------------------
+    # SENDER
+    # -----------------------------------------------------
+
     sender_email = os.getenv(
         "GMAIL_SENDER_EMAIL"
     )
@@ -189,14 +388,25 @@ ChargePilot AI
 
         message["From"] = sender_email
 
-    # Recipient
+    # -----------------------------------------------------
+    # RECIPIENT
+    # -----------------------------------------------------
+
     message["To"] = to_email
 
-    # Subject
+    # -----------------------------------------------------
+    # SUBJECT
+    # -----------------------------------------------------
+
     message["Subject"] = subject
 
-    # Body
-    message.set_content(body)
+    # -----------------------------------------------------
+    # BODY
+    # -----------------------------------------------------
+
+    message.set_content(
+        body
+    )
 
     # -----------------------------------------------------
     # READ PDF
@@ -230,7 +440,7 @@ ChargePilot AI
         base64.urlsafe_b64encode(
             message.as_bytes()
         )
-        .decode()
+        .decode("utf-8")
     )
 
     # -----------------------------------------------------
@@ -243,21 +453,44 @@ ChargePilot AI
     # SEND EMAIL
     # -----------------------------------------------------
 
-    result = (
-        service.users()
-        .messages()
-        .send(
-            userId="me",
-            body={
-                "raw": encoded_message
-            }
+    try:
+
+        result = (
+            service.users()
+            .messages()
+            .send(
+                userId="me",
+                body={
+                    "raw": encoded_message
+                }
+            )
+            .execute()
         )
-        .execute()
-    )
+
+    except Exception as error:
+
+        print(
+            f"❌ Gmail send error: {error}"
+        )
+
+        raise
 
     # -----------------------------------------------------
-    # RETURN RESULT
+    # SUCCESS
     # -----------------------------------------------------
+
+    print()
+    print(
+        "✓ Email sent successfully."
+    )
+
+    print(
+        f"✓ Recipient: {to_email}"
+    )
+
+    print(
+        f"✓ Message ID: {result.get('id')}"
+    )
 
     return {
         "success": True,
@@ -277,9 +510,26 @@ if __name__ == "__main__":
     print("CHARGEPILOT EMAIL SERVICE")
     print("=" * 60)
     print()
-    print("Email service loaded successfully.")
+
+    print(
+        "Email service loaded successfully."
+    )
+
     print(
         "send_email_with_attachment() is available."
     )
+
+    print()
+
+    print(
+        "Local credentials:",
+        get_secret_file("credentials.json")
+    )
+
+    print(
+        "Gmail token:",
+        get_secret_file("token.json")
+    )
+
     print()
     print("=" * 60)
