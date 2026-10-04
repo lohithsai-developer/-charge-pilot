@@ -6,10 +6,11 @@ from flask import (
     send_from_directory
 )
 
+from flask_cors import CORS
+
 import os
 import uuid
 import traceback
-
 
 from tools import get_trip_data
 from agent import analyze_journey
@@ -20,6 +21,16 @@ from agent import analyze_journey
 # =========================================================
 
 app = Flask(__name__)
+CORS(
+    app,
+    resources={
+        r"/*": {
+            "origins": [
+                "https://charge-pilot-ea2d9.web.app"
+            ]
+        }
+    }
+)
 
 
 # =========================================================
