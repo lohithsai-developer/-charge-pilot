@@ -38,6 +38,14 @@ MAX_EXACT_DETOUR_REQUESTS = 6
 # Restaurant calls are also limited to actual candidate stations.
 MAX_RESTAURANT_REQUESTS = 2
 
+# Overpass is optional. Render environments can have unreliable access to
+# public Overpass instances, so keep it disabled by default for production.
+# Set CHARGEPILOT_ENABLE_OVERPASS_RESTAURANTS=true to enable it.
+ENABLE_OVERPASS_RESTAURANTS = os.getenv(
+    "CHARGEPILOT_ENABLE_OVERPASS_RESTAURANTS",
+    "false",
+).strip().lower() in ("1", "true", "yes", "on")
+
 # Small pause between public API requests.
 API_DELAY_SECONDS = 0.25
 
@@ -931,20 +939,19 @@ def enrich_live_status(stations, maximum=None):
 # =========================================================
 
 def get_nearby_restaurants(latitude, longitude, radius=2000):
-    """
-    Best-effort restaurant lookup.
-
-    Restaurant data is optional for ChargePilot. If Overpass is slow,
-    unreachable, rate-limited, or returns invalid data, this function
-    returns an empty list so the main EV journey planner can continue.
-    """
+    """Best-effort restaurant lookup that can be disabled in production."""
     if latitude is None or longitude is None:
+        return []
+
+    # IMPORTANT: restaurant data is optional. On Render, public Overpass
+    # endpoints may be unreachable or slow. Never let that block /plan.
+    if not ENABLE_OVERPASS_RESTAURANTS:
         return []
 
     radius = max(100, safe_float(radius, 2000))
 
     query = f"""
-    [out:json][timeout:6];
+    [out:json][timeout:4];
     (
       node[amenity=restaurant](around:{radius},{latitude},{longitude});
       way[amenity=restaurant](around:{radius},{latitude},{longitude});
@@ -964,7 +971,7 @@ def get_nearby_restaurants(latitude, longitude, radius=2000):
                 endpoint,
                 data=query,
                 headers=HEADERS,
-                timeout=5,
+                timeout=4,
             )
 
             if response.status_code != 200:
